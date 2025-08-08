@@ -1,73 +1,51 @@
-# AI Resume Scanner
+# AI Resume Matcher — Brief README
 
-A modern, AI-powered resume screening tool built with Python and BERT. This project compares resumes to job descriptions using semantic similarity (Sentence-BERT) and identifies missing keywords — enabling smarter resume tailoring and job targeting.
+## Approach
 
-## 🔍 Key Features
+* **Parsing:** Extract text from uploaded PDF resumes (pdfplumber) and the Job Description (JD). Clean (lowercase, de-noise), split into sections (skills/experience/education) with regex heuristics.
+* **Semantic Match:** Compute a quick **embedding similarity** (SentenceTransformers) for fast ranking, then call **Gemini (`google-genai`)** for a deeper, instruction-guided evaluation (fit score + rationale + skill gaps).
+* **Output:** For each candidate: overall match %, evidence snippets, missing skills, and a short recommendation.
+* **Resilience:** Centralized `genai.Client` (cached via `st.cache_resource`) + retry/backoff on 429/500/503; fallback between `gemini-1.5-flash` ↔ `gemini-1.5-pro`.
 
-- ✅ Extracts text from resumes (PDF, DOCX, TXT)
-- ✅ Parses job descriptions (TXT)
-- ✅ Calculates a semantic match score using **Sentence-BERT**
-- ✅ Identifies missing keywords from the resume
-- 🧠 Built for extensibility (Streamlit UI, AWS hosting, advanced NLP)
+## Assumptions
 
-## 📁 Project Structure
+* Resumes are text-selectable PDFs (not scans).
+* English content; JD provided in plain text.
+* Python **3.11** runtime.
+* Keys provided via Streamlit **Secrets** in Cloud; `.env` is **local only**.
+* Free-tier usage is sufficient; occasional rate/overload errors may occur.
 
-```
-AI-Resume-Scanner/
-├── app/
-│   ├── resume_parser.py
-│   ├── job_parser.py
-│   └── __init__.py
-├── data/
-│   ├── resumes/
-│   └── job_descriptions/
-├── main.py                  # BERT-based semantic comparison
-├── requirements.txt
-└── README.md
-```
+## Setup (super short)
 
-## ⚙️ How to Use
+Local:
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/Becky0x01/AI-Resume-Scanner.git
-cd AI-Resume-Scanner
-```
-
-2. Install dependencies:
-```bash
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env  # add GENAI_API_KEY
+streamlit run app.py
 ```
 
-3. Add your resume and job description (in `data/`)
+Streamlit Cloud:
 
-4. Run the script:
-```bash
-python3 main.py
-```
+* Advanced settings → Python **3.11**
+* Secrets (TOML):
 
-## 🧠 Semantic AI Matching
+  ```toml
+  GENAI_API_KEY = "your-gemini-key"
+  ```
+* Save → **Restart** app.
 
-This project uses [`sentence-transformers`](https://www.sbert.net/) to generate vector embeddings for resume and job description content, then compares them with cosine similarity.
+## Things to Know
 
-### Example Output:
-```
-🤖 Semantic Match Score: 85.17%
-🧩 Missing Keywords from Resume:
-aws, scalable, cloud, communication, nlp, deployment
-```
+* **.env isn’t uploaded** to Cloud; use **Secrets**.
+* **503/429** = model busy → automatic retries + try the other model.
+* We **don’t store** resumes/JDs; all processing is in-memory during the session.
+* Scores are **heuristics**; use alongside human review.
+* If PDFs are images, add OCR (e.g., Tesseract) in a future iteration.
 
-## 🚀 Future Extensions
+## Known Limitations / Next Steps
 
-- Add Streamlit UI for interactive uploading
-- Deploy to AWS (EC2 or Streamlit Cloud)
-- Semantic keyword feedback
-- Resume version recommendations
-
-## 👩‍💻 Built By
-
-Becky Zhu  
-Aspiring AI/Cloud Engineer | Lifelong Learner  
-[LinkedIn](https://www.linkedin.com/in/rebeccaiit) | [GitHub](https://github.com/Becky0x01)
-
----
+* Add OCR for scanned resumes; handle tables in CVs better.
+* Introduce reproducibility controls (seed) and budget caps (max tokens).
+* Export results (CSV/JSON) and batch processing queue for large candidate sets.
