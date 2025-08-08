@@ -1,0 +1,10 @@
+Job Title: AI Engineer
+
+We are looking for an AI Engineer to join our team and help build scalable AI-powered systems.
+
+Requirements:
+- Proficiency in Python
+- Experience with AWS and cloud platforms
+- Understanding of ML/DL concepts
+- Knowledge of NLP or Computer Vision a plus
+- Strong problem-solving and communication skills
